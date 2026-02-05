@@ -30,7 +30,7 @@ class Recipe(models.Model):
 class RecipeIngredient(models.Model):
     """Ингредиент рецепта"""
     UNIT_CHOICES = [
-        ('', 'По вкусу'),  # ВАЖНО! Добавлена пустая строка
+        ('', 'По вкусу'),
         ('pcs', 'Штук'),
         ('kg', 'Килограмм'),
         ('g', 'Грамм'),
