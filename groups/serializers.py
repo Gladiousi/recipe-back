@@ -1,6 +1,11 @@
+# groups/serializers.py
+
 from rest_framework import serializers
+from django.contrib.auth import get_user_model  # ← этот импорт решает проблему
+from django.shortcuts import get_object_or_404
 from .models import Group, GroupMembership, GroupInvitation
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer  # предполагается, что он существует
+
 
 class GroupMembershipSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -26,7 +31,6 @@ class GroupSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         group = Group.objects.create(owner=user, **validated_data)
-        # Добавляем создателя как члена группы и админа
         GroupMembership.objects.create(user=user, group=group, is_admin=True)
         return group
 
@@ -34,37 +38,59 @@ class GroupSerializer(serializers.ModelSerializer):
 class GroupInvitationSerializer(serializers.ModelSerializer):
     inviter = UserSerializer(read_only=True)
     invitee = UserSerializer(read_only=True)
-    invitee_username = serializers.CharField(write_only=True)
+    invitee_username = serializers.CharField(write_only=True, required=True)
     group_name = serializers.CharField(source='group.name', read_only=True)
 
     class Meta:
         model = GroupInvitation
-        fields = ['id', 'group', 'group_name', 'inviter', 'invitee', 'invitee_username', 'status', 'created_at']
-        read_only_fields = ['id', 'inviter', 'invitee', 'status', 'created_at']
+        fields = [
+            'id', 'group', 'group_name', 'inviter', 'invitee',
+            'invitee_username', 'status', 'created_at'
+        ]
+        read_only_fields = [
+            'id', 'group', 'group_name', 'inviter', 'invitee',
+            'status', 'created_at'
+        ]
 
     def create(self, validated_data):
+        """
+        Здесь мы вручную обрабатываем создание приглашения,
+        потому что invitee_username — это не поле модели
+        """
         invitee_username = validated_data.pop('invitee_username')
+        group = validated_data.pop('group')     # пришло из view
+        inviter = validated_data.pop('inviter') # пришло из view
+
+        User = get_user_model()
+
         try:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
             invitee = User.objects.get(username=invitee_username)
         except User.DoesNotExist:
-            raise serializers.ValidationError({"invitee_username": "Пользователь не найден"})
+            raise serializers.ValidationError({
+                "invitee_username": "Пользователь с таким именем не найден"
+            })
 
-        group = validated_data['group']
-        inviter = self.context['request'].user
+        # Проверки на дубликаты (очень рекомендуется)
+        if GroupMembership.objects.filter(group=group, user=invitee).exists():
+            raise serializers.ValidationError({
+                "invitee_username": "Пользователь уже состоит в группе"
+            })
 
-        # Проверка, что пользователь уже не в группе
-        if group.members.filter(id=invitee.id).exists():
-            raise serializers.ValidationError({"invitee_username": "Пользователь уже в группе"})
+        if GroupInvitation.objects.filter(
+            group=group,
+            invitee=invitee,
+            status='pending'
+        ).exists():
+            raise serializers.ValidationError({
+                "invitee_username": "Приглашение этому пользователю уже отправлено и ожидает ответа"
+            })
 
-        # Проверка на существующее приглашение
-        if GroupInvitation.objects.filter(group=group, invitee=invitee, status='pending').exists():
-            raise serializers.ValidationError({"invitee_username": "Приглашение уже отправлено"})
-
+        # Создаём приглашение
         invitation = GroupInvitation.objects.create(
             group=group,
             inviter=inviter,
-            invitee=invitee
+            invitee=invitee,
+            # status по умолчанию 'pending'
         )
+
         return invitation

@@ -2,7 +2,6 @@ from django.db import models
 from django.conf import settings
 
 class Group(models.Model):
-    """Модель группы для совместных покупок"""
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     owner = models.ForeignKey(
@@ -26,7 +25,6 @@ class Group(models.Model):
 
 
 class GroupMembership(models.Model):
-    """Связь пользователя с группой"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     joined_at = models.DateTimeField(auto_now_add=True)
@@ -41,7 +39,6 @@ class GroupMembership(models.Model):
 
 
 class GroupInvitation(models.Model):
-    """Приглашения в группу"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
