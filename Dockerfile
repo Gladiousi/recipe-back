@@ -1,7 +1,8 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y \
-    gcc libpq-dev \
+    gcc \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -13,4 +14,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+CMD sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --workers 2"
