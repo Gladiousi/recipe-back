@@ -11,7 +11,7 @@ SECRET_KEY = config('SECRET_KEY', default='your-secret-key-change-in-production'
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'recipe-lyuqt2abu-gladiousis-projects.vercel.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'recipe-sigma-jade.vercel.app']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -130,7 +130,7 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://recipe-lyuqt2abu-gladiousis-projects.vercel.app"
+    "https://recipe-sigma-jade.vercel.app"
 ]
 
 if DEBUG:
